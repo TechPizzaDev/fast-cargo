@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-fn main() {
+pub fn main() {
     App::new().add_systems(Update, hello_world_system).run();
 }
 
