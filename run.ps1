@@ -1,13 +1,7 @@
 
-$SourceDir = "./crates/bevy-hello-world"
-$BuildDir = "./build"
+$SourceDir = "./crates/bevy-hello-world-bin"
 
-$WorkDir = Join-Path $BuildDir $SourceDir
-
-Remove-Item $WorkDir -Recurse -Force
-Copy-Item -Path $SourceDir -Destination $WorkDir -Recurse
-
-Push-Location $WorkDir
+Push-Location $SourceDir
 
 # We need to use nightly toolchain for advanced and experimental options (primarily "-Z").
 $Env:RUSTUP_TOOLCHAIN = "nightly"
@@ -23,13 +17,13 @@ $CurDir = (Get-Location).Path
 # Build statically linked exe.
 # This links all dependencies, including the Rust libstd. 
 $Env:RUSTFLAGS="
-    -Zself-profile=$($CurDir)/profiles-static 
+    -Zself-profile=$($CurDir)/target/profiles-static 
     -Zself-profile-events=default
     "
     
 cargo build `
     -Z unstable-options `
-    --artifact-dir="$($CurDir)/out-static" `
+    --artifact-dir="$($CurDir)/target/out-static" `
 
 cargo run
 
@@ -37,7 +31,7 @@ cargo run
 # Rust libstd will use the dylib from toolchain.
 # Internal bevy crates will be linked into one big dylib.
 $Env:RUSTFLAGS="
-    -Z self-profile=$($CurDir)/profiles-dylib
+    -Z self-profile=$($CurDir)/target/profiles-dylib
     -Z self-profile-events=default
 
     -C strip=symbols
@@ -47,11 +41,12 @@ $Env:RUSTFLAGS="
     -C prefer-dynamic=yes
     "
 
-cargo build `
-    --features bevy/dynamic_linking `
-    -Z unstable-options `
-    --artifact-dir="$($CurDir)/out-dylib"
+ cargo build `
+ --features bevy-hello-world/dynamic_linking `
+     -Z unstable-options `
+     --artifact-dir="$($CurDir)/target/out-dylib" `
+     --profile dev
 
 cargo run `
-    --features bevy/dynamic_linking `
-    -Z unstable-options
+    -Z unstable-options `
+    --profile dev
