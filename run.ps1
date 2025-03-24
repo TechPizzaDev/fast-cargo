@@ -19,6 +19,7 @@ $CurDir = (Get-Location).Path
 $Env:RUSTFLAGS="
     -Zself-profile=$($CurDir)/target/profiles-static 
     -Zself-profile-events=default
+    -Z cross-crate-inline-threshold=always
     "
     
 cargo build `
@@ -33,6 +34,7 @@ cargo run
 $Env:RUSTFLAGS="
     -Z self-profile=$($CurDir)/target/profiles-dylib
     -Z self-profile-events=default
+    -Z cross-crate-inline-threshold=always
 
     -C strip=symbols
     -C split-debuginfo=off
