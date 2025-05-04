@@ -1,5 +1,3 @@
-cargo-features = ["codegen-backend"]
-
 [package]
 name = "bevy-hello-world-bin"
 version = "0.1.0"
