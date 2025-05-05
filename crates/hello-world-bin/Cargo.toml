@@ -4,7 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-hello_world = { path = "../hello-world" }
-
-[profile.dev]
-codegen-backend = "cranelift"
+hello-world = { path = "../hello-world" }
