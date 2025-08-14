@@ -4,16 +4,39 @@ cargo-features = ["codegen-backend"]
 resolver = "2"
 members = ["crates/*"]
 
-# Enable a small amount of optimization in the dev profile.
-[profile.dev]
-opt-level = 1
+
+### Dev Profiles - LLVM
+[profile._dev]
+inherits = "dev"
+codegen-backend = "llvm"
+
+[profile.iter]
+inherits = "dev"
+codegen-backend = "llvm"
+
+[profile.iter.package."*"]
+opt-level = 2
+
+
+### Dev Profiles - Cranelift 
+[profile.dev_clif]
+inherits = "dev"
 codegen-backend = "cranelift"
 
-# Enable a large amount of optimization in the dev profile for dependencies.
-[profile.dev.package."*"]
-opt-level = 2
-codegen-backend = "cranelift" # cascades from `[profile.dev]`
-codegen-units = 1
+[profile.iter_clif]
+inherits = "dev"
+codegen-backend = "cranelift"
 
-# opt-level = 2
-# codegen-backend = "llvm" # needed since "cranelift" cascades from `[profile.dev]`
+[profile.iter_clif.package."*"]
+opt-level = 2
+
+
+### Release Profiles
+[profile.rel]
+inherits = "release"
+codegen-backend = "llvm"
+
+[profile.rel_clif]
+inherits = "release"
+codegen-backend = "cranelift"
+

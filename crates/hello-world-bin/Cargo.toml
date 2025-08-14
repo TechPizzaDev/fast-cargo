@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 hello-world = { path = "../hello-world" }
+hello-world-dylib = { path = "../hello-world-dylib", optional = true }
+
+[features]
+dynamic_linking = ["dep:hello-world-dylib", "hello-world/dynamic_linking"]

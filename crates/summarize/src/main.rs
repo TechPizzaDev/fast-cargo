@@ -41,6 +41,10 @@ struct DiffOpt {
 
 #[derive(Parser, Debug)]
 struct SummarizeOpt {
+    /// Writes the analysis to a json file next to <file_prefix> instead of stdout
+    #[arg(long = "json", name = "json_path")]
+    json: Option<PathBuf>,
+    
     #[arg(required_unless_present = "dir")]
     file_prefix: Option<PathBuf>,
 
@@ -48,13 +52,12 @@ struct SummarizeOpt {
     #[arg(long = "dir")]
     dir: Option<PathBuf>,
 
-    /// Writes the analysis to a json file next to <file_prefix> instead of stdout
-    #[arg(long = "json")]
-    json: bool,
-
     /// Filter the output to items whose self-time is greater than this value
     #[arg(short = 'p', long = "percent-above", default_value = "0.0")]
     percent_above: f64,
+
+    #[arg(long = "no-progress")]
+    no_progress: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -88,7 +91,7 @@ fn write_results_json(
     file: &PathBuf,
     results: impl Serialize,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let file = BufWriter::new(File::create(file.with_extension("json"))?);
+    let file = BufWriter::new(File::create(file)?);
     serde_json::to_writer(file, &results)?;
     Ok(())
 }
@@ -107,13 +110,13 @@ fn aggregate(opt: AggregateOpt) -> Result<(), Box<dyn Error + Send + Sync>> {
 }
 
 fn diff(opt: DiffOpt) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let base = process_results(&opt.base)?;
+    let base: AnalysisResults = process_results(&opt.base)?;
     let change = process_results(&opt.change)?;
 
     let results = diff::calculate_diff(base, change);
 
     if opt.json {
-        write_results_json(&opt.change, results)?;
+        write_results_json(&opt.change.with_extension("json"), results)?;
         return Ok(());
     }
 
@@ -181,19 +184,22 @@ fn summarize(opt: SummarizeOpt) -> Result<(), Box<dyn Error + Send + Sync>> {
     let dir_paths = file_prefixes_in_dir(&opt)?;
 
     let file_iter = opt.file_prefix.iter().chain(dir_paths.iter());
-    let total_hint = file_iter.size_hint();
-    let total_count = total_hint.1.unwrap_or(total_hint.0);
+    let file_size_hint = file_iter.size_hint();
+    let file_max_count = file_size_hint.1.unwrap_or(file_size_hint.0);
 
     let mut query_data = FxHashMap::<String, QueryData>::default();
     let mut artifact_sizes = BTreeMap::<Cow<'_, str>, ArtifactSize>::default();
     let mut total_time = Duration::default();
 
-    let mut cur_count = 0;
-    
-    for file_prefix in file_iter {
-        cur_count += 1;
-        println!("[{}/{}] Analyzing \"{}\"...", cur_count, total_count, file_prefix.display());
-
+    for (i, file_prefix) in file_iter.enumerate() {
+        if !opt.no_progress {
+            println!(
+                "[{}/{}] Analyzing \"{}\"...",
+                i + 1,
+                file_max_count,
+                file_prefix.display()
+            );
+        }
         let data = ProfilingData::new(file_prefix)?;
         let result = data.perform_analysis();
 
@@ -228,8 +234,15 @@ fn summarize(opt: SummarizeOpt) -> Result<(), Box<dyn Error + Send + Sync>> {
     };
 
     //just output the results into a json file
-    if opt.json {
-        write_results_json(&(opt.file_prefix.unwrap_or("dir".into())), &results)?;
+    if let Some(json_path) = opt.json {
+        let file = match json_path {
+            p if !p.as_os_str().is_empty() => p,
+            _ => opt
+                .file_prefix
+                .unwrap_or("dir".into())
+                .with_extension("json"),
+        };
+        write_results_json(&file, &results)?;
         return Ok(());
     }
 

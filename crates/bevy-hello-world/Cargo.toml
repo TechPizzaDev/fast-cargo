@@ -3,9 +3,6 @@ name = "bevy-hello-world"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-crate-type = ["dylib"]
-
 [dependencies]
 bevy = { version = "0.15.3", default-features = false }
 
