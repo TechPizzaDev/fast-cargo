@@ -2,11 +2,8 @@ param (
     [string] $mode = "static"
 )
 
-function Convert-Duration {
-    param (
-        $duration
-    )
-    return $duration.secs + ($duration.nanos / 1000000000)
+filter Convert-Duration {
+    return $_.secs + ($_.nanos / 1000000000)
 }
 
 $names = ("_dev", "dev_clif", "iter", "iter_clif", "rel", "rel_clif")
@@ -33,11 +30,7 @@ foreach ($prof in $names) {
         
         $key = If ($opts -eq "") {"default"} Else { $opts.TrimStart("-") }
         
-        $join_time = Convert-Duration ($json.query_data 
-        | Where-Object { $_.label -eq "finish_ongoing_codegen" }
-        | Select-Object -ExpandProperty "time")
-
-        $item_time.$key = (Convert-Duration $json.total_time) - $join_time
+        $item_time.$key = $json.total_time | Convert-Duration
 
         $item_arti_size.$key = $json.artifact_sizes 
         | Where-Object { $_.label -eq "linked_artifact" } 
